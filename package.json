@@ -1,0 +1,82 @@
+{
+	"name": "liquid-css-variable-completion",
+	"displayName": "Liquid CSS Variable Completion",
+	"description": "A Visual Studio Code extension that provides CSS variable completion for Shopify Liquid files.",
+	"version": "0.0.1",
+	"publisher": "MaksymKurniy",
+	"repository": "https://github.com/MaksymKurniy/liquid-css-variable-completion",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"categories": [
+		"Other",
+		"Formatters",
+		"Programming Languages"
+	],
+	"tags": [
+		"shopify",
+		"liquid",
+		"css",
+		"html"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./src/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "liquid-css-variables.refresh",
+				"title": "Refresh CSS Variables from Liquid Files"
+			}
+		],
+		"configuration": {
+			"title": "Liquid CSS Variable Completion",
+			"properties": {
+				"liquidCssVariables.includePatterns": {
+					"type": "array",
+					"default": [
+						"**/*.liquid"
+					],
+					"description": "Glob patterns for finding Liquid files",
+					"items": {
+						"type": "string"
+					}
+				},
+				"liquidCssVariables.excludePatterns": {
+					"type": "array",
+					"default": [
+						"**/node_modules/**"
+					],
+					"description": "Glob patterns for excluding files",
+					"items": {
+						"type": "string"
+					}
+				},
+				"liquidCssVariables.remToPxConversion": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show rem→px conversion in hints"
+				},
+				"liquidCssVariables.baseFontSize": {
+					"type": "number",
+					"default": 16,
+					"description": "Base font size for rem→px conversion (default 16px)"
+				},
+				"liquidCssVariables.onlyRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Extract CSS variables only from :root blocks (ignoring class blocks like .color-scheme-1)"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"package": "vsce package",
+		"test": "jest"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.54.0",
+		"jest": "^30.0.4"
+	}
+}
