@@ -239,35 +239,12 @@ The extension searches for CSS variables in:
 - **Early optimization** - Skips files without `:root` immediately
 - **No duplicate dashes** - Typing `--` + selecting variable = correct result
 
-## 📋 Complete Configuration Example
-
-Add to your project's `.vscode/settings.json`:
-
-```json
-{
-  "liquidCssVariables.includePatterns": [
-    "**/snippets/theme-styles-*.liquid",
-    "**/snippets/color-schemes.liquid",
-    "**/sections/header.liquid"
-  ],
-  "liquidCssVariables.excludePatterns": [
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/build/**"
-  ],
-  "liquidCssVariables.remToPxConversion": true,
-  "liquidCssVariables.baseFontSize": 16,
-  "liquidCssVariables.onlyRoot": true
-}
-```
-
 ## 💡 Tips & Tricks
 
 1. **Quick Navigation**: Hover over a variable and click the source file link to jump to its definition
 2. **Smart Typing**: Start typing `--` and extension handles it perfectly (no `---` duplication)
-3. **Context-aware**: Inside `var()` - inserts variable name only; outside - wraps with `var()`
-4. **Media Queries**: Hover shows all media query variants of a variable
-5. **Performance**: Use specific include patterns for faster scans in large projects
+3. **Media Queries**: Hover shows all media query variants of a variable
+4. **Performance**: Use specific include patterns for faster scans in large projects
 
 ## 🛠️ Requirements
 
@@ -276,11 +253,7 @@ Add to your project's `.vscode/settings.json`:
 
 ## 🐛 Known Issues
 
-Report issues on [GitHub](https://github.com/yourusername/liquid-css-variables/issues)
-
-## 📝 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+Report issues on [GitHub](https://github.com/MaksymKurniy/liquid-css-variables/issues)
 
 ## 📄 License
 

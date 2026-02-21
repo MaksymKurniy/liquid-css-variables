@@ -26,7 +26,7 @@ const REGEX = Object.freeze({
   mediaQuery: /@media\s*([^{]+)\{/g,
   arrayAccess: /^([\w_]+)\[([^\]]+)\]$/,
   propAccess: /^([\w_]+)\.([\w_]+)$/,
-  numericLiteral: /^\d+(\.\d+)?$/
+  numericLiteral: /^\d+(\.\d+)?$/,
 });
 
 /**
@@ -38,11 +38,15 @@ function getExtensionConfig() {
   }
   const config = vscode.workspace.getConfiguration('liquidCssVariables');
   cachedConfig = {
-    includePatterns: config.get('includePatterns', ['**/*.liquid']),
+    includePatterns: config.get('includePatterns', [
+      '**/*.liquid',
+      '**/snippets/theme-styles-*.liquid',
+      '**/snippets/color-schemes.liquid',
+    ]),
     excludePatterns: config.get('excludePatterns', ['**/node_modules/**']),
     remToPxConversion: config.get('remToPxConversion', true),
     baseFontSize: config.get('baseFontSize', 16),
-    onlyRoot: config.get('onlyRoot', true)
+    onlyRoot: config.get('onlyRoot', true),
   };
   return cachedConfig;
 }
@@ -161,7 +165,10 @@ function hexToRgba(hex, alpha = 1) {
 
   // Handle shorthand hex (e.g., #fff)
   if (hex.length === 3) {
-    hex = hex.split('').map(char => char + char).join('');
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('');
   }
 
   if (hex.length !== 6 && hex.length !== 8) return null;
@@ -319,50 +326,48 @@ async function scanLiquidFiles() {
       return 0;
     }
 
-  // Get extension configuration
-  const config = getExtensionConfig();
+    // Get extension configuration
+    const config = getExtensionConfig();
 
-  // Collect all file reading promises
-  const filePromises = [];
+    // Collect all file reading promises
+    const filePromises = [];
 
-  for (const folder of workspaceFolders) {
-    // Scan files for each include pattern
-    for (const includePattern of config.includePatterns) {
-      // Combine all exclude patterns
-      const excludePattern = config.excludePatterns.length > 0
-        ? `{${config.excludePatterns.join(',')}}`
-        : undefined;
+    for (const folder of workspaceFolders) {
+      // Scan files for each include pattern
+      for (const includePattern of config.includePatterns) {
+        // Combine all exclude patterns
+        const excludePattern = config.excludePatterns.length > 0 ? `{${config.excludePatterns.join(',')}}` : undefined;
 
-      const liquidFiles = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, includePattern),
-        excludePattern
-      );
-
-      // Read files in parallel
-      for (const fileUri of liquidFiles) {
-        filePromises.push(
-          vscode.workspace.fs.readFile(fileUri)
-            .then(content => {
-              const text = Buffer.from(content).toString('utf8');
-              // Early exit if no :root
-              if (text.includes(':root')) {
-                parseCssVariables(text, fileUri.fsPath);
-              }
-            })
-            .catch(error => {
-              console.error(`Error reading file ${fileUri.fsPath}:`, error);
-            })
+        const liquidFiles = await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, includePattern),
+          excludePattern,
         );
+
+        // Read files in parallel
+        for (const fileUri of liquidFiles) {
+          filePromises.push(
+            vscode.workspace.fs
+              .readFile(fileUri)
+              .then((content) => {
+                const text = Buffer.from(content).toString('utf8');
+                // Early exit if no :root
+                if (text.includes(':root')) {
+                  parseCssVariables(text, fileUri.fsPath);
+                }
+              })
+              .catch((error) => {
+                console.error(`Error reading file ${fileUri.fsPath}:`, error);
+              }),
+          );
+        }
       }
     }
-  }
 
-  // Wait for all files to be processed
-  await Promise.all(filePromises);
+    // Wait for all files to be processed
+    await Promise.all(filePromises);
 
-  console.log(`\n✓ Found ${cssVariables.size} CSS variables`);
-  return cssVariables.size;
-
+    console.log(`\n✓ Found ${cssVariables.size} CSS variables`);
+    return cssVariables.size;
   } catch (error) {
     console.error('Error in scanLiquidFiles:', error);
     vscode.window.showErrorMessage(`Failed to scan files: ${error.message}`);
@@ -479,7 +484,7 @@ function processIfBlockInLoop(lines, startIndex, variables) {
 function evaluateLiquidCondition(condition, variables) {
   // Handle 'contains' operator
   if (condition.includes(' contains ')) {
-    const [left, right] = condition.split(' contains ').map(s => s.trim());
+    const [left, right] = condition.split(' contains ').map((s) => s.trim());
     const leftVal = String(evaluateLiquidExpression(left, variables));
     const rightVal = String(evaluateLiquidExpression(right, variables));
     return leftVal.includes(rightVal);
@@ -497,10 +502,14 @@ function evaluateLiquidCondition(condition, variables) {
       const leftNum = parseFloat(leftVal);
       const rightNum = parseFloat(rightVal);
       switch (operator) {
-        case '>=': return leftNum >= rightNum;
-        case '<=': return leftNum <= rightNum;
-        case '>': return leftNum > rightNum;
-        case '<': return leftNum < rightNum;
+        case '>=':
+          return leftNum >= rightNum;
+        case '<=':
+          return leftNum <= rightNum;
+        case '>':
+          return leftNum > rightNum;
+        case '<':
+          return leftNum < rightNum;
       }
     }
     // For == comparison
@@ -518,7 +527,10 @@ function evaluateLiquidCondition(condition, variables) {
 function executeLiquidBlock(liquidCode) {
   const variables = {};
   let output = '';
-  const lines = liquidCode.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = liquidCode
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l);
 
   let skipMode = false; // For skipping comment blocks
 
@@ -749,7 +761,7 @@ function evaluateLiquidExpression(expr, variables) {
     // Try to evaluate as expression
     const varMatch = value.match(/'?\[([^\]]+)\]'?/g);
     if (varMatch) {
-      varMatch.forEach(placeholder => {
+      varMatch.forEach((placeholder) => {
         const varName = placeholder.replace(/['"\[\]]/g, '');
         const varValue = variables[varName] !== undefined ? variables[varName] : '';
         value = value.replace(placeholder, varValue);
@@ -837,7 +849,9 @@ function applyLiquidFilter(value, filter, variables) {
       return Array.isArray(value) ? [...new Set(value)] : value;
 
     case 'sort_natural':
-      return Array.isArray(value) ? value.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true })) : value;
+      return Array.isArray(value)
+        ? value.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
+        : value;
 
     case 'find_index':
       const searchValue = filterArg ? evaluateLiquidExpression(filterArg, variables) : '';
@@ -851,11 +865,11 @@ function applyLiquidFilter(value, filter, variables) {
       if (result === -1) {
         const searchNum = parseFloat(searchStr);
         if (!isNaN(searchNum)) {
-          result = value.findIndex(v => parseFloat(v) === searchNum);
+          result = value.findIndex((v) => parseFloat(v) === searchNum);
         }
       }
 
-return result;
+      return result;
 
     // Shopify-specific filters that we can't emulate - just return the original value
     case 'font_modify':
@@ -879,7 +893,6 @@ function liquidToCSS(text) {
   // Step 1: Process {% for scheme in settings.color_schemes %} loops
   // Take only the first iteration (forloop.index == 1)
   text = text.replace(REGEX.forScheme, (match, schemeVar, loopContent) => {
-
     // Simulate first iteration
     let firstIteration = loopContent;
 
@@ -1037,19 +1050,19 @@ function processConditionalBlocks(text) {
     const firstElseMatch = /{%\s*else\s*%}/.exec(currentContent);
     const firstEnd = Math.min(
       firstElsifMatch ? firstElsifMatch.index : Infinity,
-      firstElseMatch ? firstElseMatch.index : Infinity
+      firstElseMatch ? firstElseMatch.index : Infinity,
     );
 
     parts.push({
       condition: condition,
-      content: currentContent.substring(0, firstEnd !== Infinity ? firstEnd : currentContent.length)
+      content: currentContent.substring(0, firstEnd !== Infinity ? firstEnd : currentContent.length),
     });
 
     // Extract elsif branches
     while ((elsifMatch = elsifRegex.exec(blockContent)) !== null) {
       parts.push({
         condition: elsifMatch[1].trim(),
-        content: elsifMatch[2]
+        content: elsifMatch[2],
       });
     }
 
@@ -1058,7 +1071,7 @@ function processConditionalBlocks(text) {
     if (elseMatch) {
       parts.push({
         condition: null, // else has no condition (always true)
-        content: elseMatch[1]
+        content: elseMatch[1],
       });
     }
 
@@ -1093,15 +1106,21 @@ function evaluateCondition(condition) {
 
     // Convert to appropriate type
     const actualValue = settingValue;
-    const expectedValue = quote ? compareValue : (isNaN(compareValue) ? compareValue : Number(compareValue));
+    const expectedValue = quote ? compareValue : isNaN(compareValue) ? compareValue : Number(compareValue);
 
     switch (operator) {
-      case '==': return actualValue == expectedValue;
-      case '!=': return actualValue != expectedValue;
-      case '<': return actualValue < expectedValue;
-      case '>': return actualValue > expectedValue;
-      case '<=': return actualValue <= expectedValue;
-      case '>=': return actualValue >= expectedValue;
+      case '==':
+        return actualValue == expectedValue;
+      case '!=':
+        return actualValue != expectedValue;
+      case '<':
+        return actualValue < expectedValue;
+      case '>':
+        return actualValue > expectedValue;
+      case '<=':
+        return actualValue <= expectedValue;
+      case '>=':
+        return actualValue >= expectedValue;
     }
   }
 
@@ -1181,7 +1200,7 @@ function parseLiquidEchoVariables(text, filePath) {
         cssVariables.set(varName, {
           value: varValue,
           file: path.basename(filePath),
-          filePath: filePath
+          filePath: filePath,
         });
       }
     }
@@ -1234,7 +1253,7 @@ function parseVariablesInBlock(content, filePath, mediaQuery) {
         value: varValue,
         file: path.basename(filePath),
         filePath: filePath,
-        media: mediaQuery ? [{ query: mediaQuery, value: varValue }] : []
+        media: mediaQuery ? [{ query: mediaQuery, value: varValue }] : [],
       });
     } else {
       // Variable exists - add media query if applicable
@@ -1312,7 +1331,7 @@ function parseClassBlocks(text, filePath) {
             value: varValue,
             file: path.basename(filePath),
             filePath: filePath,
-            media: []
+            media: [],
           });
         }
       }
@@ -1403,6 +1422,12 @@ class CssVariableCompletionProvider {
 
     // Check once for insertion context
     const inVarContext = linePrefix.includes('var(');
+
+    // Only provide completions inside var() context
+    if (!inVarContext) {
+      return completionItems;
+    }
+
     const afterColonOrSpace = linePrefix.match(/[:\s]$/);
 
     // Check if user already typed '--' (to avoid duplication like '---variable')
@@ -1417,7 +1442,7 @@ class CssVariableCompletionProvider {
 
       // Add media query information if present
       if (varData.media && varData.media.length > 0) {
-        const mediaInfo = varData.media.map(m => `- \`@media ${m.query}\`: \`${m.value}\``).join('\n');
+        const mediaInfo = varData.media.map((m) => `- \`@media ${m.query}\`: \`${m.value}\``).join('\n');
         docParts.push(`**Media Queries:**\n${mediaInfo}`);
       }
 
@@ -1442,15 +1467,8 @@ class CssVariableCompletionProvider {
       // Set insertion text based on context
       if (alreadyTypedDashes) {
         // User typed '--', we need to replace it with the full variable name
-        const replaceRange = new vscode.Range(
-          position.line,
-          position.character - 2,
-          position.line,
-          position.character
-        );
-        item.additionalTextEdits = [
-          vscode.TextEdit.delete(replaceRange)
-        ];
+        const replaceRange = new vscode.Range(position.line, position.character - 2, position.line, position.character);
+        item.additionalTextEdits = [vscode.TextEdit.delete(replaceRange)];
         item.insertText = varName;
       } else if (inVarContext) {
         item.insertText = varName;
@@ -1506,7 +1524,8 @@ function activate(context) {
   const cssProvider = vscode.languages.registerCompletionItemProvider(
     ['css', 'scss', 'less', 'liquid', 'html'],
     completionProvider,
-    '-', '(' // Triggers for autocompletion
+    '-',
+    '(', // Triggers for autocompletion
   );
 
   // Register hover provider
@@ -1514,31 +1533,26 @@ function activate(context) {
 
   const cssHoverProvider = vscode.languages.registerHoverProvider(
     ['css', 'scss', 'less', 'liquid', 'html'],
-    hoverProvider
+    hoverProvider,
   );
 
   // Command for manual refresh
-  const refreshCommand = vscode.commands.registerCommand(
-    'liquid-css-variables.refresh',
-    async () => {
-      try {
-        const varCount = await scanLiquidFiles();
+  const refreshCommand = vscode.commands.registerCommand('liquid-css-variables.refresh', async () => {
+    try {
+      const varCount = await scanLiquidFiles();
 
-        // Group variables by file
-        const uniqueFiles = new Set();
-        for (const [, varData] of cssVariables) {
-          uniqueFiles.add(varData.file);
-        }
-
-        vscode.window.showInformationMessage(
-          `✓ Found ${varCount} CSS variables from ${uniqueFiles.size} Liquid file(s)`
-        );
-      } catch (error) {
-        console.error('Refresh command error:', error);
-        vscode.window.showErrorMessage(`Refresh failed: ${error.message}`);
+      // Group variables by file
+      const uniqueFiles = new Set();
+      for (const [, varData] of cssVariables) {
+        uniqueFiles.add(varData.file);
       }
+
+      vscode.window.showInformationMessage(`✓ Found ${varCount} CSS variables from ${uniqueFiles.size} Liquid file(s)`);
+    } catch (error) {
+      console.error('Refresh command error:', error);
+      vscode.window.showErrorMessage(`Refresh failed: ${error.message}`);
     }
-  );
+  });
 
   context.subscriptions.push(
     cssProvider,
@@ -1546,7 +1560,7 @@ function activate(context) {
     liquidWatcher,
     configWatcher,
     configChangeListener,
-    refreshCommand
+    refreshCommand,
   );
 }
 

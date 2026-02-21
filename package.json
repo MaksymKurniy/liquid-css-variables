@@ -2,7 +2,7 @@
 	"name": "liquid-css-variable-completion",
 	"displayName": "Liquid CSS Variable Completion",
 	"description": "A Visual Studio Code extension that provides CSS variable completion for Shopify Liquid files.",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "MaksymKurniy",
 	"repository": "https://github.com/MaksymKurniy/liquid-css-variable-completion",
 	"engines": {
